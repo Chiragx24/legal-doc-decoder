@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1B2440;
+  --color-ink-light: #2E3A5F;
+  --color-ink-deep: #12182B;
+  --color-paper: #F4F5F2;
+  --color-paper-dim: #E9EBE6;
+  --color-slate: #5B6472;
+  --color-seal: #2F6F4E;
+  --color-seal-light: #E7F0EA;
+  --color-flag: #C98A2C;
+  --color-flag-light: #FBF0DE;
+  --color-line: #D8DAD3;
+
+  --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --font-sans: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
+  word-spacing: 0.1em;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.font-serif {
+  letter-spacing: 0.015em;
+  word-spacing: 0.16em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-float,
+  .landing-rise,
+  .landing-rise-delay,
+  .landing-rise-delay-2 {
+    animation: none;
+  }
+}
+
+.landing-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.landing-float {
+  animation: landing-float 7s ease-in-out infinite;
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-rise {
+  animation: landing-rise 0.8s ease-out both;
+}
+
+.landing-rise-delay {
+  animation: landing-rise 0.9s 0.12s ease-out both;
+}
+
+.landing-rise-delay-2 {
+  animation: landing-rise 1s 0.22s ease-out both;
+}
+
+.upload-sheet {
+  background-color: #fffdf8;
+  background-image:
+    linear-gradient(to right, transparent 56px, #e8c4c4 56px, #e8c4c4 57px, transparent 57px),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 31px,
+      #ecebe4 31px,
+      #ecebe4 32px
+    );
+}
