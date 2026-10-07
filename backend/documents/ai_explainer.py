@@ -71,3 +71,53 @@ Reply with ONLY a JSON object in this exact shape, no other text:
         }
 
     return result
+
+def explain_clauses_batch(clause_texts):
+    clause_blocks = []
+    for i, clause_text in enumerate(clause_texts):
+        law_chunks = find_relevant_law(clause_text, top_n=2)
+        law_context = "\n".join(
+            f"{chunk.source_act}, {chunk.section_number}: {chunk.text}"
+            for chunk in law_chunks
+        )
+        clause_blocks.append(
+            f'Clause {i}:\n"""{clause_text}"""\nRelevant law for this clause:\n{law_context}'
+        )
+
+    all_clauses_text = "\n\n".join(clause_blocks)
+
+    prompt = f"""You are explaining clauses from a legal document to someone with no legal background.
+
+Below are {len(clause_texts)} clauses from the same document, each with relevant law for context (background only, not a strict pass/fail checklist).
+
+{all_clauses_text}
+
+For each clause, write a short plain-language explanation, and decide whether to flag it. Only flag a clause if a reasonable person would consider it a genuinely bad deal — for example, an amount or penalty that breaks a hard legal cap, a term that is unusually one-sided, or something matching a known unfair pattern. Do NOT flag ordinary administrative details like a normal refund processing window, standard notice periods, or small wording differences from the law's exact phrasing.
+
+Reply with ONLY a JSON array, one object per clause, in the same order as listed above, in this exact shape, no other text:
+[
+  {{
+    "explanation": "a short, plain-language explanation of what this clause means, 2-3 sentences",
+    "is_flagged": true or false,
+    "flag_reason": "if flagged, a short plain-language reason why; if not flagged, an empty string"
+  }}
+]"""
+
+    client = get_groq_client()
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+
+    raw_text = strip_code_fences(response.choices[0].message.content)
+
+    try:
+        results = json.loads(raw_text)
+    except json.JSONDecodeError:
+        results = []
+
+    while len(results) < len(clause_texts):
+        results.append({"explanation": "Could not generate an explanation for this clause.", "is_flagged": False, "flag_reason": ""})
+
+    return results[:len(clause_texts)]

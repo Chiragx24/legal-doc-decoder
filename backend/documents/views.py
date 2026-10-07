@@ -7,7 +7,7 @@ from .models import Document, Clause, Question
 from .serializers import RegisterSerializer, DocumentSerializer, QuestionSerializer
 from .text_extraction import extract_text
 from .clause_splitter import split_into_clauses
-from .ai_explainer import explain_clause
+from .ai_explainer import explain_clauses_batch
 from .qa_engine import answer_question
 
 class RegisterView(generics.CreateAPIView):
@@ -33,20 +33,20 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return Document.objects.filter(user=self.request.user).order_by('-uploaded_at')
 
-    def perform_create(self, serializer):
-        document = serializer.save(user=self.request.user)
-        text = extract_text(document.file.path)
-        clause_texts = split_into_clauses(text)
-        for i, clause_text in enumerate(clause_texts):
-            ai_result = explain_clause(clause_text)
-            Clause.objects.create(
-                document=document,
-                order=i,
-                text=clause_text,
-                explanation=ai_result['explanation'],
-                is_flagged=ai_result['is_flagged'],
-                flag_reason=ai_result['flag_reason'],
-            )
+        def perform_create(self, serializer):
+            document = serializer.save(user=self.request.user)
+            text = extract_text(document.file.path)
+            clause_texts = split_into_clauses(text)
+            ai_results = explain_clauses_batch(clause_texts)
+            for i, (clause_text, ai_result) in enumerate(zip(clause_texts, ai_results)):
+                Clause.objects.create(
+                    document=document,
+                    order=i,
+                    text=clause_text,
+                    explanation=ai_result['explanation'],
+                    is_flagged=ai_result['is_flagged'],
+                    flag_reason=ai_result['flag_reason'],
+                )
 
 class DocumentDetailView(generics.RetrieveAPIView):
     serializer_class = DocumentSerializer
