@@ -1,13 +1,12 @@
+import threading
 from rest_framework import generics, permissions
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from .models import Document, Clause, Question
+from .models import Document, Question
 from .serializers import RegisterSerializer, DocumentSerializer, QuestionSerializer
-from .text_extraction import extract_text
-from .clause_splitter import split_into_clauses
-from .ai_explainer import explain_clauses_batch
+from .processing import process_document
 from .qa_engine import answer_question
 
 
@@ -35,19 +34,9 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         return Document.objects.filter(user=self.request.user).order_by('-uploaded_at')
 
     def perform_create(self, serializer):
-        document = serializer.save(user=self.request.user)
-        text = extract_text(document.file.path)
-        clause_texts = split_into_clauses(text)
-        ai_results = explain_clauses_batch(clause_texts)
-        for i, (clause_text, ai_result) in enumerate(zip(clause_texts, ai_results)):
-            Clause.objects.create(
-                document=document,
-                order=i,
-                text=clause_text,
-                explanation=ai_result['explanation'],
-                is_flagged=ai_result['is_flagged'],
-                flag_reason=ai_result['flag_reason'],
-            )
+        document = serializer.save(user=self.request.user, status='pending')
+        thread = threading.Thread(target=process_document, args=(document.id,), daemon=True)
+        thread.start()
 
 
 class DocumentDetailView(generics.RetrieveAPIView):

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { Flag, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Flag, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react'
 import { getDocument } from '../api/documents'
 import Card from '../components/Card'
 import QAPanel from '../components/QAPanel'
@@ -11,12 +11,37 @@ function DocumentDashboard() {
   const [document, setDocument] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const pollRef = useRef(null)
 
   useEffect(() => {
-    getDocument(id)
-      .then(setDocument)
-      .catch((err) => setError(err.message || 'Could not load document'))
-      .finally(() => setLoading(false))
+    function fetchDocument() {
+      getDocument(id)
+        .then((data) => {
+          setDocument(data)
+          setLoading(false)
+          if (data.status === 'completed' || data.status === 'failed') {
+            if (pollRef.current) {
+              clearInterval(pollRef.current)
+              pollRef.current = null
+            }
+          }
+        })
+        .catch((err) => {
+          setError(err.message || 'Could not load document')
+          setLoading(false)
+          if (pollRef.current) {
+            clearInterval(pollRef.current)
+            pollRef.current = null
+          }
+        })
+    }
+
+    fetchDocument()
+    pollRef.current = setInterval(fetchDocument, 3000)
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
   }, [id])
 
   if (loading) {
@@ -33,6 +58,36 @@ function DocumentDashboard() {
       <div className="min-h-screen bg-paper">
         <Header />
         <div className="p-8 text-flag">{error}</div>
+      </div>
+    )
+  }
+
+  if (document.status === 'pending' || document.status === 'processing') {
+    return (
+      <div className="min-h-screen bg-paper">
+        <Header />
+        <div className="max-w-3xl mx-auto p-6">
+          <Card className="text-center py-16">
+            <Loader2 size={28} className="mx-auto text-ink animate-spin mb-4" />
+            <p className="text-ink font-medium mb-1">Analyzing your document</p>
+            <p className="text-sm text-slate">This usually takes under a minute — this page updates automatically.</p>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (document.status === 'failed') {
+    return (
+      <div className="min-h-screen bg-paper">
+        <Header />
+        <div className="max-w-3xl mx-auto p-6">
+          <Card className="text-center py-16">
+            <AlertTriangle size={28} className="mx-auto text-flag mb-4" />
+            <p className="text-ink font-medium mb-1">Something went wrong analyzing this document</p>
+            <p className="text-sm text-slate">Try uploading it again.</p>
+          </Card>
+        </div>
       </div>
     )
   }

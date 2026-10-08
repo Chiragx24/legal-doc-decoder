@@ -63,8 +63,8 @@ function Upload() {
       const data = await toast.promise(
         uploadDocument(file, docType),
         {
-          loading: 'Analyzing your document — this can take up to a minute...',
-          success: 'Document analyzed',
+          loading: 'Uploading your document...',
+          success: 'Uploaded — analyzing now',
           error: (err) => err.message || 'Upload failed',
         }
       )
@@ -240,7 +240,7 @@ function Upload() {
                   {loading ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      Analyzing...
+                      Uploading...
                     </>
                   ) : (
                     <>
