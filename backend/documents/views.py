@@ -10,6 +10,7 @@ from .clause_splitter import split_into_clauses
 from .ai_explainer import explain_clauses_batch
 from .qa_engine import answer_question
 
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -33,26 +34,28 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return Document.objects.filter(user=self.request.user).order_by('-uploaded_at')
 
-        def perform_create(self, serializer):
-            document = serializer.save(user=self.request.user)
-            text = extract_text(document.file.path)
-            clause_texts = split_into_clauses(text)
-            ai_results = explain_clauses_batch(clause_texts)
-            for i, (clause_text, ai_result) in enumerate(zip(clause_texts, ai_results)):
-                Clause.objects.create(
-                    document=document,
-                    order=i,
-                    text=clause_text,
-                    explanation=ai_result['explanation'],
-                    is_flagged=ai_result['is_flagged'],
-                    flag_reason=ai_result['flag_reason'],
-                )
+    def perform_create(self, serializer):
+        document = serializer.save(user=self.request.user)
+        text = extract_text(document.file.path)
+        clause_texts = split_into_clauses(text)
+        ai_results = explain_clauses_batch(clause_texts)
+        for i, (clause_text, ai_result) in enumerate(zip(clause_texts, ai_results)):
+            Clause.objects.create(
+                document=document,
+                order=i,
+                text=clause_text,
+                explanation=ai_result['explanation'],
+                is_flagged=ai_result['is_flagged'],
+                flag_reason=ai_result['flag_reason'],
+            )
+
 
 class DocumentDetailView(generics.RetrieveAPIView):
     serializer_class = DocumentSerializer
 
     def get_queryset(self):
         return Document.objects.filter(user=self.request.user)
+
 
 class AskDocumentQuestionView(generics.ListCreateAPIView):
     serializer_class = QuestionSerializer
