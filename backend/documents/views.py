@@ -1,4 +1,6 @@
-import threading
+import subprocess
+import sys
+from django.conf import settings
 from rest_framework import generics, permissions
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
@@ -6,7 +8,6 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from .models import Document, Question
 from .serializers import RegisterSerializer, DocumentSerializer, QuestionSerializer
-from .processing import process_document
 from .qa_engine import answer_question
 
 
@@ -35,8 +36,10 @@ class DocumentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         document = serializer.save(user=self.request.user, status='pending')
-        thread = threading.Thread(target=process_document, args=(document.id,), daemon=True)
-        thread.start()
+        subprocess.Popen(
+            [sys.executable, 'manage.py', 'process_document', str(document.id)],
+            cwd=str(settings.BASE_DIR),
+        )
 
 
 class DocumentDetailView(generics.RetrieveAPIView):
